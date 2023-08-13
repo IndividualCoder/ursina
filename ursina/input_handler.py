@@ -2,6 +2,7 @@ from collections import defaultdict
 from enum import Enum
 
 
+
 class Keys(Enum):
     left_mouse_down = 'left mouse down'
     left_mouse_up = 'left mouse up'
@@ -45,8 +46,6 @@ class Keys(Enum):
     gamepad_left_stick_y = 'gamepad left stick y'   # held_keys only
     gamepad_right_stick_x = 'gamepad right stick x'   # held_keys only
     gamepad_right_stick_y = 'gamepad right stick y'   # held_keys only
-    gamepad_left_trigger = 'gamepad left trigger'   # held_keys only
-    gamepad_right_trigger = 'gamepad right trigger'   # held_keys only
     gamepad_a = 'gamepad a'
     gamepad_a_up = 'gamepad a up'
     gamepad_b = 'gamepad b'
@@ -122,7 +121,7 @@ def input(key):
 
     key = key.replace('mouse down', 'mouse')
 
-    if key.endswith(' up') and key != 'page up' and key != 'gamepad dpad up':
+    if key.endswith('up') and key != 'page up':
         held_keys[key[:-3]] = 0
     else:
         held_keys[key] = 1

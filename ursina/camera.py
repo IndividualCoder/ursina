@@ -1,4 +1,4 @@
-import sys
+# import sys
 from ursina.entity import Entity
 from panda3d.core import PerspectiveLens, OrthographicLens, LensNode, NodePath
 from panda3d.core import Camera as PandaCamera
@@ -15,7 +15,7 @@ from ursina.string_utilities import print_info
 
 class Camera(Entity):
 
-    def __init__(self):
+    def __init__(self,orthographic = False,**kwargs):
         super().__init__()
         self.parent = scene
         self.name = 'camera'
@@ -27,24 +27,37 @@ class Camera(Entity):
         self._ui_lens_node = None
         self.ui = None
         self.fov = 40
-        self.orthographic = False
+        self.orthographic = orthographic
 
 
     def set_up(self):
         self.display_region = application.base.camNode.get_display_region(0)
         win = self.display_region.get_window()
 
+        # left_dr = win.getDisplayRegion(0)
+        # left_dr.setDimensions(0, 0.5, 0, 1)  # Set the region's dimensions
+        # left_dr.setClearColor(Vec4(1, 0, 0, 1))  # Set the region's clear color
+        # application.base.win.addDisplayRegion(left_dr)
+        # win.makeDisplayRegion(0, 0.5, 0, 1)
+
         self.perspective_lens = PerspectiveLens()
+        # self.perspective_lens.set_display_region(.4,.3)
+        # print(f"superseu{self.perspective_lens.get_film_size()}")
+        # self.perspective_lens.set_film_size(.8,.1)
         self.perspective_lens = application.base.camLens # use panda3d's default for automatic aspect ratio on window resize
         self.lens = self.perspective_lens
-        self.perspective_lens.set_aspect_ratio(window.aspect_ratio)
+        self.perspective_lens.setAspectRatio(1000)
+        # self.perspective_lens.setFilmOffset(5,0.5)
+        # self.perspective_lens.setFilmSize(.0000000001,.0000000001)
+        # self.pre_len_node = render.attachNewNode(self.perspective_lens)
+
         self.perspective_lens_node = LensNode('perspective_lens_node', self.perspective_lens)
         self.lens_node = self.perspective_lens_node
 
         self.orthographic_lens = OrthographicLens()
-        self.orthographic_lens.set_film_size(self.fov * window.aspect_ratio, self.fov)
+        self.orthographic_lens.set_film_size(.1, self.fov)
         self.orthographic_lens_node = LensNode('orthographic_lens_node', self.orthographic_lens)
-
+        self.orthographic_lens.setAspectRatio(.3)
         application.base.cam.node().set_lens(self.lens)
 
         self.orthographic = False
@@ -53,7 +66,7 @@ class Camera(Entity):
         self.clip_plane_near = 0.1
         self.clip_plane_far = 10000
 
-        self.ui_display_region = win.make_display_region()
+        self.ui_display_region = win.make_display_region(.52,.5,0,0)
         self.ui_display_region.set_sort(20)
 
         self.ui_camera = NodePath(PandaCamera('ui_camera'))
@@ -227,7 +240,7 @@ if __name__ == '__main__':
     from ursina.shaders import camera_grayscale_shader
     camera.shader = camera_grayscale_shader
 
-    # def update():
-    #     t = Texture(camera.render_texture)
-    #     print(t.pixels)
+    def update():
+        t = Texture(camera.render_texture)
+        print(t.pixels)
     app.run()

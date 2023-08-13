@@ -17,11 +17,11 @@ class Text(Entity):
 
     size = .025
     default_font = 'OpenSans-Regular.ttf'
-    default_resolution = 1080 * size * 2
+    default_resolution = 54.0
     start_tag = '<'
     end_tag = '>'
 
-    def __init__(self, text='', start_tag=start_tag, end_tag=end_tag, ignore=True, **kwargs):
+    def __init__(self, text='', start_tag=start_tag, end_tag=end_tag, ignore=True,Resolution =77, **kwargs):
         super().__init__(ignore=ignore)
         self.size = Text.size
         self.parent = camera.ui
@@ -33,7 +33,7 @@ class Text(Entity):
         self.origin = (-.5, .5)
 
         self.font = Text.default_font
-        self.resolution = Text.default_resolution
+        self.resolution = Resolution
         self.line_height = 1
         self.use_tags = True
         self.start_tag = start_tag
@@ -51,8 +51,7 @@ class Text(Entity):
 
         if 'origin' in kwargs:   # set the scale before model for correct corners
             setattr(self, 'origin', kwargs['origin'])
-        if 'use_tags' in kwargs:
-            setattr(self, 'use_tags', kwargs['use_tags'])
+
 
         if text != '':
             self.text = text
@@ -130,15 +129,11 @@ class Text(Entity):
                 section = ''
 
                 tag = ''
-                done = False
                 for j in range(len(text)-i):
                     tag += text[i+j]
                     if text[i+j] == self.end_tag and len(tag) > 0:
                         i += j+1
-                        done = True
                         break
-                if not done:
-                    i += 1
             else:
                 section += char
                 i += 1
@@ -379,6 +374,9 @@ class Text(Entity):
             # tn.setZ(tn.getZ() - (halfheight * value[1] * 2 * self.size))
             tn.setY(tn.getY() - (halfheight * value[1] * 2 * self.size))
 
+
+    def PrintPos(self):
+        print(self.position)
 
     def create_background(self, padding=size*2, radius=size, color=ursina.color.black66):
         from ursina import Quad, destroy

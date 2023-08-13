@@ -51,7 +51,7 @@ class Entity(NodePath):
         'name':'entity', 'enabled':True, 'eternal':False, 'position':Vec3(0,0,0), 'rotation':Vec3(0,0,0), 'scale':Vec3(1,1,1), 'model':None, 'origin':Vec3(0,0,0),
         'shader':None, 'texture':None, 'color':color.white, 'collider':None}
 
-    def __init__(self, add_to_scene_entities=True, **kwargs):
+    def __init__(self, add_to_scene_entities=True,material = None, **kwargs):
         self._children = []
         super().__init__(self.__class__.__name__)
 
@@ -62,6 +62,8 @@ class Entity(NodePath):
         self.eternal = False    # eternal entities does not get destroyed on scene.clear()
         self.ignore_paused = False      # if True, will still run when application is paused. useful when making a pause menu for example.
         self.ignore_input = False
+        if material is not None:
+            super().setMaterial(material)
 
         self._parent = None
         self.parent = scene     # default parent is scene, which means it's in 3d space. to use UI space, set the parent to camera.ui instead.
@@ -507,6 +509,28 @@ class Entity(NodePath):
     @z.setter
     def z(self, value):
         self.setZ(value)
+
+    @property
+    def position_x(self):
+        return self.getX()
+    @position_x.setter
+    def x(self, value):
+        self.setX(value)
+
+    @property
+    def position_y(self):
+        return self.getY()
+    @position_y.setter
+    def y(self, value):
+        self.setY(value)
+
+    @property
+    def position_z(self):
+        return self.getZ()
+    @position_z.setter
+    def z(self, value):
+        self.setZ(value)
+
 
     @property
     def X(self):    # shortcut for int(entity.x)
@@ -958,6 +982,8 @@ class Entity(NodePath):
     def set_position(self, value, relative_to=scene): # set position relative to on other Entity. In most cases, use .position instead.
         self.setPos(relative_to, Vec3(value[0], value[1], value[2]))
 
+    def set_position_mod(self,value):
+        self.position = value
 
     def rotate(self, value, relative_to=None):  # rotate around local axis.
         if not relative_to:
@@ -1095,7 +1121,6 @@ class Entity(NodePath):
         for key, value in target_class.default_values.items():
             attr = getattr(self, key)
 
-
             if hasattr(attr, 'name') and attr.name:
                 attr = attr.name
                 if '.' in attr:
@@ -1179,11 +1204,35 @@ class Entity(NodePath):
             z = self.animate('z', value[2], duration, **kwargs)
         return x, y, z
 
+    def animate_position_x(self, value, duration=.1, **kwargs):
+        x = self.animate('x', value, duration,  **kwargs)
+        return x
+
+    def animate_position_y(self, value, duration=.1, **kwargs):
+        y = self.animate('y', value, duration,  **kwargs)
+        return y
+
+    def animate_position_z(self, value, duration=.1, **kwargs):
+        z = self.animate('z', value, duration,  **kwargs)
+        return z
+
     def animate_rotation(self, value, duration=.1,  **kwargs):
         x = self.animate('rotation_x', value[0], duration,  **kwargs)
         y = self.animate('rotation_y', value[1], duration,  **kwargs)
         z = self.animate('rotation_z', value[2], duration,  **kwargs)
         return x, y, z
+
+    def animate_rotation_x(self,value,duration=.1,**kwargs):
+        x = self.animate("rotation_",value,duration,**kwargs)
+        return x
+
+    def animate_rotation_y(self,value,duration=.1,**kwargs):
+        y  = self.animate("rotation_",value,duration,**kwargs)
+        return y
+
+    def animate_rotation_z(self,value,duration=.1,**kwargs):
+        z = self.animate("rotation_",value,duration,**kwargs)
+        return z
 
     def animate_scale(self, value, duration=.1, **kwargs):
         if isinstance(value, (int, float, complex)):
@@ -1355,8 +1404,9 @@ if __name__ == '__main__':
     # e.animate_x(3, duration=2, delay=.5, loop=True)
     # e.animate_position(Vec3(1,1,1), duration=1, loop=True)
     # e.animate_rotation(Vec3(45,45,45))
-    # e.animate_scale(2, duration=1, curve=curve.out_expo_boomerang, loop=True)
-    # e.animate_color(color.green, loop=True)
+    # e.ani
+    # mate_scale(2, duration=1, curve=curve.out_expo_boomerang, loop=True)
+    e.animate_color(color.green, loop=True,duration = 4)
     # e.shake()
     # e.fade_out(delay=.5)
     # e.fade_in(delay=2.5)

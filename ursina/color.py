@@ -61,7 +61,8 @@ class Color(Vec4):
     def tint(self, amount):
         return tint(self, amount)
 
-
+    # def update_alpha(self,value):
+    #     self
 
 def hsv(h, s, v, a=1):
     return Color(colorsys.hsv_to_rgb((h / 360) - floor(h / 360), s, v) + (a,))
@@ -74,6 +75,13 @@ def rgba(r, g, b, a=255):
         color = Color(tuple(c/255 for c in color))
     # color[3] = min(1, color[3])
     return color
+def a(a):
+    color = Color(a)
+    if color[0] > 0:
+        color = Color(a = c/255)
+    # color[3] = min(1, color[3])
+    return color
+
 
 def rgb(r, g, b, a=255):
     return rgba(r, g, b, a)
@@ -130,6 +138,7 @@ turquoise =     color(150, 1, 1)
 cyan =          color(180, 1, 1)
 azure =         color(210, 1, 1)
 blue =          color(240, 1, 1)
+light_blue = rgb(173,216,230)
 violet =        color(270, 1, 1)
 magenta =       color(300, 1, 1)
 pink =          color(330, 1, 1)
@@ -162,7 +171,7 @@ for i in range(256):
 
 color_names = ('white', 'smoke', 'light_gray', 'gray', 'dark_gray', 'black',
     'red', 'orange', 'yellow', 'lime', 'green', 'turquoise', 'cyan', 'azure',
-    'blue', 'violet', 'magenta', 'pink', 'brown', 'olive', 'peach', 'gold', 'salmon')
+    'blue', 'violet', 'magenta', 'pink',"light_blue", 'brown', 'olive', 'peach', 'gold', 'salmon')
 colors = dict()
 for cn in color_names:
     colors[cn] = getattr(sys.modules[__name__], cn)
@@ -173,7 +182,7 @@ if __name__ == '__main__':
     app = Ursina()
 
     print(color.brightness(color.blue))
-    print(_3)
+    # print(_3)
 
     p = Entity(x=-2)
     for key in color.colors:

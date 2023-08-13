@@ -19,7 +19,9 @@ class Func():
         return self.func(*self.args, **self.kwargs)
 
 
+
 class Sequence():
+
     default_time_step = None
 
     def __init__(self, *args, **kwargs):
@@ -59,7 +61,7 @@ class Sequence():
         if isinstance(arg, (int, float)):
             self.duration += arg
 
-        elif callable(arg):
+        elif isinstance(arg, Func):
             arg.delay = self.duration
             self.funcs.append(arg)
 

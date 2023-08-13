@@ -186,11 +186,11 @@ if __name__ == '__main__':
     from ursina import Ursina, printvar
 
     app = Ursina()
-    # a = Audio('life_is_currency_wav', pitch=1)
+    a = Audio('life_is_currency_wav', pitch=1)
     def input(key):
         if key == 'space':
             a = Audio('life_is_currency', pitch=random.uniform(.5,1), loop=True, autoplay=True)
-    # print(a.clip)
+    print(a.clip)
     # a.volume=0
     # b = Audio(a.clip)
     # a2 = Audio(clip=a.clip)
@@ -207,5 +207,6 @@ if __name__ == '__main__':
     #
     # def update():
     #     print(a.time)
+    a.play()
 
     app.run()

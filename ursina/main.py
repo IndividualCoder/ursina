@@ -26,7 +26,7 @@ def singleton(cls, **kwargs):
         return instances[cls]
     return getinstance
 
-@singleton
+# @singleton
 class Ursina(ShowBase):
     def __init__(self, **kwargs): # optional arguments: title, fullscreen, size, forced_aspect_ratio, position, vsync, borderless, show_ursina_splash, render_mode, development_mode, editor_ui_enabled, window_type='onscreen'/'offscreen'/'none'.
         """The main class of Ursina. This class is a singleton, so you can only have one instance of it.

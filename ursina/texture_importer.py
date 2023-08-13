@@ -9,11 +9,11 @@ file_types = ('.tif', '.jpg', '.jpeg', '.png', '.gif')
 textureless = False
 
 
-def load_texture(name, path=None, use_cache=True):
+def load_texture(name, path=None):
     if textureless:
         return None
 
-    if use_cache and name in imported_textures:
+    if name in imported_textures:
         return copy(imported_textures[name])
 
     folders = ( # folder search order
@@ -52,8 +52,7 @@ def load_texture(name, path=None, use_cache=True):
         try:
             from psd_tools import PSDImage
         except (ModuleNotFoundError, ImportError) as e:
-            pass
-            # print('info: psd-tools3 not installed')
+            print('info: psd-tools3 not installed')
 
         for folder in folders:
             for filename in folder.glob('**/' + name + '.psd'):
@@ -61,7 +60,6 @@ def load_texture(name, path=None, use_cache=True):
                 compress_textures(name)
                 return load_texture(name)
 
-    imported_textures[name] = None  # prevent searching for the same missing texture multiple times
     return None
 
 

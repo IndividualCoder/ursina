@@ -1,9 +1,7 @@
-import sys
 
 from ursina.entity import Entity
 from ursina.scene import instance as scene
 from ursina.vec3 import Vec3
-from math import sqrt, inf
 from ursina.hit_info import HitInfo
 from ursina import ursinamath, color
 from ursina.ursinastuff import invoke

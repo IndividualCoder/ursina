@@ -10,15 +10,11 @@ from panda3d.core import CullFaceAttrib
 from time import perf_counter
 from ursina.string_utilities import print_info, print_warning
 from ursina import color
-from ursina.vec3 import Vec3
-import panda3d.core as p3d
-import gltf
-
 
 imported_meshes = dict()
 blender_scenes = dict()
 
-def load_model(name, path=application.asset_folder, file_types=('.bam', '.ursinamesh', '.obj', '.glb', '.gltf', '.blend'), use_deepcopy=False, gltf_no_srgb=application.gltf_no_srgb):
+def load_model(name, path=application.asset_folder, file_types=('.bam', '.ursinamesh', '.obj', '.glb', '.gltf', '.blend'), use_deepcopy=False):
     if not isinstance(name, str):
         raise TypeError(f"Argument save must be of type str, not {type(str)}")
 
@@ -45,15 +41,8 @@ def load_model(name, path=application.asset_folder, file_types=('.bam', '.ursina
         # warning: glob is case-insensitive on windows, so m.path will be all lowercase
         for filename in path.glob(f'**/{name}{filetype}'):
             if filetype == '.bam':
-                # print_info('loading bam')
+                print_info('loading bam')
                 return loader.loadModel(filename)  # type: ignore
-
-            if filetype == '.gltf' or filetype == '.glb':
-                gltf_settings = gltf.GltfSettings()
-                gltf_settings.no_srgb = gltf_no_srgb
-                model_root = gltf.load_model(str(filename), gltf_settings=gltf_settings)
-                imported_meshes[name] = p3d.NodePath(model_root)
-                return p3d.NodePath(model_root)
 
             if filetype == '.ursinamesh':
                 try:
@@ -61,7 +50,6 @@ def load_model(name, path=application.asset_folder, file_types=('.bam', '.ursina
                         m = eval(f.read())
                         m.path = filename
                         m.name = name
-                        m.vertices = [Vec3(*v) for v in m.vertices]
                         imported_meshes[name] = m
                         return m
                 except:
@@ -70,20 +58,20 @@ def load_model(name, path=application.asset_folder, file_types=('.bam', '.ursina
 
             if filetype == '.obj':
                 # print('found obj', filename)
+                # m = loader.loadModel(filename)
+                # m.setAttrib(CullFaceAttrib.make(CullFaceAttrib.MCullCounterClockwise))
                 m = obj_to_ursinamesh(path=path, name=name, return_mesh=True)
                 m.path = filename
                 m.name = name
                 imported_meshes[name] = m
-                if not use_deepcopy:
-                    m.save(f'{name}.bam')
-
                 return m
 
             elif filetype == '.blend':
                 print_info('found blend file:', filename)
                 if compress_models(path=path, name=name):
                     # obj_to_ursinamesh(name=name)
-                    return load_model(name, path, use_deepcopy=use_deepcopy)
+                    return load_model(name, path)
+
             else:
                 try:
                     return loader.loadModel(filename)  # type: ignore
@@ -128,12 +116,12 @@ if application.development_mode:
             application.blender_paths['default'] = blender_exec
 
 
-def load_blender_scene(name, path=application.asset_folder, load=True, reload=False, skip_hidden=True, models_only=False, uvs=True, vertex_colors=True, normals=True, decimals=4):
+def load_blender_scene(name, path=application.asset_folder, load=True, reload=False, skip_hidden=True, models_only=False):
     scenes_folder = Path(application.asset_folder / 'scenes')
     if not scenes_folder.exists():
         scenes_folder.mkdir()
 
-    out_file_path = scenes_folder / f'{name}.ursina_blender_scene'
+    out_file_path = scenes_folder / f'{name}.py'
     # print('loading:', out_file_path)
     if reload or not out_file_path.exists():
         print_info('reload:')
@@ -156,10 +144,6 @@ def load_blender_scene(name, path=application.asset_folder, load=True, reload=Fa
             out_file_path,
             '--skip_hidden' if skip_hidden else '',
             '--models_only' if models_only else '',
-            '--uvs' if uvs else '',
-            '--normals' if normals else '',
-            '--vertex_colors' if vertex_colors else '',
-            f'--decimals={decimals}',
         ]
 
         subprocess.run(args)
@@ -202,8 +186,6 @@ def get_blender(blend_file):    # try to get a matching blender version in case 
 
 
 def compress_models(path=None, outpath=application.compressed_models_folder, name='*'):
-    if "/" in name or '\\' in name:
-        raise Exception(f'Path character "/" or "\\" found in blender name ({name}). To successfully import .blend files, use only the file name.')
 
     if not application.compressed_models_folder.exists():
         application.compressed_models_folder.mkdir()
@@ -227,7 +209,15 @@ def compress_models(path=None, outpath=application.compressed_models_folder, nam
     return exported
 
 
-def obj_to_ursinamesh(path=application.compressed_models_folder, outpath=application.compressed_models_folder, name='*', return_mesh=True, save_to_file=False, delete_obj=False):
+def obj_to_ursinamesh(
+    path=application.compressed_models_folder,
+    outpath=application.compressed_models_folder,
+    name='*',
+    return_mesh=True,
+    save_to_file=False,
+    delete_obj=False
+    ):
+
     if name.endswith('.obj'):
         name = name[:-4]
 
@@ -319,7 +309,7 @@ def obj_to_ursinamesh(path=application.compressed_models_folder, outpath=applica
                     pass
 
             elif l.startswith('mtllib '):    # load mtl file
-                mtl_file_name = Path(f).with_suffix('.mtl')
+                mtl_file_name = Path(str(f).rstrip('.obj') + '.mtl')
                 if mtl_file_name.exists():
                     with open(mtl_file_name) as mtl_file:
                         mtl_data = mtl_file.readlines()
@@ -440,19 +430,15 @@ def compress_models_fast(model_name=None, write_to_disk=False):
 
                 return file_content
 
-def ursina_mesh_to_obj(mesh, name='', out_path=application.compressed_models_folder, max_decimals=5, flip_faces=True):
+def ursina_mesh_to_obj(mesh, name='', out_path=application.compressed_models_folder, max_decimals=3):
     from ursina.string_utilities import camel_to_snake
-
-    obj = ''
-    obj += f'mtllib {name}.mtl\n'
-    obj += f'usemtl {name}\n'
 
     if not name:
         name = camel_to_snake(mesh.__class__.__name__)
-    obj += 'o ' + name + '\n'
-    verts = mesh.vertices
+    obj = 'o ' + name + '\n'
 
-    for v in verts:
+
+    for v in mesh.vertices:
         v = [round(e, max_decimals) for e in v]
         obj += f'v {v[0]} {v[1]} {v[2]}\n'
 
@@ -470,15 +456,9 @@ def ursina_mesh_to_obj(mesh, name='', out_path=application.compressed_models_fol
             new_tris = []
             for t in tris:
                 if len(t) == 3:
-                    if not flip_faces:
-                        new_tris.extend([t[0], t[1], t[2]])
-                    else:
-                        new_tris.extend([t[2], t[1], t[0]])
+                    new_tris.extend([t[0], t[1], t[2]])
                 elif len(t) == 4: # turn quad into tris
-                    if not flip_faces:
-                        new_tris.extend([t[0], t[1], t[2], t[2], t[3], t[0]])
-                    else:
-                        new_tris.extend([t[2], t[1], t[0], t[0], t[3], t[2]])
+                    new_tris.extend([t[0], t[1], t[2], t[2], t[3], t[0]])
 
             tris = new_tris
 
@@ -498,7 +478,7 @@ def ursina_mesh_to_obj(mesh, name='', out_path=application.compressed_models_fol
             obj += '/'+str(t+1)
         obj += ' '
 
-    obj += '\n'
+
     # print(obj)
     with open(out_path / (name + '.obj'), 'w') as f:
         f.write(obj)
@@ -538,7 +518,6 @@ if __name__ == '__main__':
     t = perf_counter()
     Entity(model='untitled')
     print('-------', perf_counter() - t)
-    m = load_model('cube', use_deepcopy=True)
     # ground = Entity(model='plane', scale=10, texture='brick', texture_scale=Vec2(4))
     # DirectionalLight()
 

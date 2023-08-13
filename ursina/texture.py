@@ -207,7 +207,7 @@ if __name__ == '__main__':
     #             print('found blue pixel at:', x, y)
 
     # test
-    application.asset_folder = Path(r'C:\sync\high resolution images')
+    application.asset_folder = Path(r'C:\sync \ high resolution images')
     e = Entity(model='quad')
     # from PIL import Image
 

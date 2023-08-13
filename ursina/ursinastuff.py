@@ -13,6 +13,7 @@ from ursina.text import Text
 from ursina.window import instance as window
 from ursina.scene import instance as scene
 from ursina.sequence import Sequence, Func, Wait
+from ursina.color import rgb
 
 
 class Empty():
@@ -62,12 +63,17 @@ def _destroy(entity, force_destroy=False):
 
     if hasattr(entity, 'stop'):
         entity.stop(False)
+        # return
 
     if hasattr(entity, 'on_destroy'):
         entity.on_destroy()
 
+    for c in entity.children:
+        _destroy(c)
+
     if entity in scene.entities:
         scene.entities.remove(entity)
+
 
     if hasattr(entity, 'scripts'):
         for s in entity.scripts:
@@ -84,7 +90,10 @@ def _destroy(entity, force_destroy=False):
     if hasattr(entity, '_on_click') and isinstance(entity._on_click, Sequence):
         entity._on_click.kill()
 
-    entity.removeNode()
+    try:
+        entity.removeNode()
+    except:
+        print('already destroyed')
     #unload texture
     # if hasattr(entity, 'texture') and entity.texture != None:
     #     entity.texture.releaseAll()
@@ -134,8 +143,10 @@ def import_all_classes(path=application.asset_folder, debug=False):
     return imported_successfully
 
 
-def print_on_screen(text, position=(0,0), origin=(-.5,.5), scale=1, duration=1):
-    text_entity = Text(text=text, position=position, origin=origin, scale=scale)
+def print_on_screen(text, position=(0,0), origin=(-.5,.5),color = rgb(255,255,255), scale=1, duration=1,blink = False,blink_color = rgb(255,255,255)):
+    text_entity = Text(text=text, position=position, origin=origin,color = color, scale=scale)
+    if blink:
+        text_entity.blink(blink_color)
     destroy(text_entity, delay=duration)
 
 
