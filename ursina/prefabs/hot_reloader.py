@@ -147,7 +147,7 @@ class HotReloader(Entity):
         reloaded_textures = list()
 
         for e in textured_entities:
-            if e.texture.name in reloaded_textures or not hasattr(e.texture, 'path') or not e.texture.path:
+            if e.texture.name in reloaded_textures:
                 continue
 
             if e.texture.path.parent.name == application.compressed_textures_folder.name:

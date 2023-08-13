@@ -19,10 +19,12 @@ class DropdownMenuButton(Button):
 
 class DropdownMenu(DropdownMenuButton):
 
-    def __init__(self, text='', buttons=list(), **kwargs):
+    def __init__(self, text='', buttons=list(),click_to_open = False, **kwargs):
         super().__init__(text=text)
         self.position = window.top_left
         self.buttons = buttons
+
+        self.UnhoverToExit = click_to_open
         for i, b in enumerate(self.buttons):
             b.world_parent = self
             b.original_scale = b.scale
@@ -46,7 +48,7 @@ class DropdownMenu(DropdownMenuButton):
 
     def close(self):
         for i, b in enumerate(reversed(self.buttons)):
-            b.enabled = False
+            b.disable()
 
 
     def on_mouse_enter(self):
@@ -54,7 +56,7 @@ class DropdownMenu(DropdownMenuButton):
         self.open()
 
     def input(self, key):
-        if key == 'left mouse down' and mouse.hovered_entity and mouse.hovered_entity.has_ancestor(self):
+        if key == 'left mouse down' and mouse.hovered_entity and mouse.hovered_entity.has_ancestor(self) and not self.UnhoverToExit:
             self.close()
 
     def update(self):
@@ -76,12 +78,12 @@ if __name__ == '__main__':
             DropdownMenuButton('Project 1'),
             DropdownMenuButton('Project 2'),
             )),
-        DropdownMenuButton('Save'),
+        DropdownMenuButton('Save',on_click = Func(print,"Saved")),
         DropdownMenu('Options', buttons=(
             DropdownMenuButton('Option a'),
             DropdownMenuButton('Option b'),
             )),
         DropdownMenuButton('Exit'),
-        ))
+        ),click_to_open=True)
 
     app.run()

@@ -7,7 +7,6 @@ class ButtonList(Entity):
         super().__init__(parent=camera.ui, position=(-(width/2), .45))
 
         self.button_height = button_height
-        self.width = width
         self.text_entity = Text(parent=self, font=font, origin=(-.5,.5), text='empty', world_scale=20, z=-.1, x=.01, y=-(button_height*.25*Text.size), line_height=button_height)
         self.bg = Entity(parent=self, model='quad', origin=(-.5,.5), scale=width, color=Button.color, collider='box')
         self.highlight = Entity(parent=self.bg, model='quad', color=color.white33, scale=(1,self.button_height), origin=(-.5,.5), z=-.01, add_to_scene_entities=False)
@@ -37,7 +36,6 @@ class ButtonList(Entity):
         # handle click here instead of in on_click so you can assign a custom on_click function
         if key == 'left mouse down' and self.bg.hovered:
             y = floor(-mouse.point.y * len(self.button_dict))
-            y = min(y, len(self.button_dict)-1)
 
             action = self.actions[y]
             self.highlight.blink(color.black, .1)
@@ -58,7 +56,6 @@ class ButtonList(Entity):
         self.highlight.enabled = mouse.hovered_entity == self.bg
         if mouse.hovered_entity == self.bg:
             y = floor(-mouse.point.y * len(self.button_dict))
-            y = min(y, len(self.button_dict)-1)
             self.highlight.y = -y / len(self.button_dict)
 
 

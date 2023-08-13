@@ -9,6 +9,7 @@ class Space():
 
 class WindowPanel(Draggable):
     def __init__(self, title='', content=[], **kwargs):
+        self.updateShilderHeight = True
         super().__init__(origin=(-0,.5), scale=(.5, Text.size*2), color=color.black)
 
         self.content = content
@@ -16,6 +17,8 @@ class WindowPanel(Draggable):
         self.popup = False
         self._prev_input_field = None
         self._original_scale = self.scale
+        self.spacing = .25
+        self.height = 1 + self.spacing
 
         for key, value in kwargs.items():
             setattr(self, key ,value)
@@ -27,8 +30,8 @@ class WindowPanel(Draggable):
 
         if self.popup:
             self.lock = Vec3(1,1,1)
-            self.bg = Button(parent=self, z=1, scale=(999, 999), color=color.black66, highlight_color=color.black66, pressed_color=color.black66)
-            self.bg.on_click = self.close
+            self.bg = Button(parent=self, z=1, scale=(999, 999), color=color.white, highlight_color=color.white, pressed_color=color.white)
+##            self.bg.on_click = self.close
 
         self.layout()
 
@@ -37,20 +40,17 @@ class WindowPanel(Draggable):
         content = self.content
         if not content:
             return
-        spacing = .25
-        height = 1 + spacing
-
         if isinstance(content, dict):
             content = content.values()
 
         for c in content:
             # print('........', c)
-            if isinstance(c, Space):
-                height += c.height
+            # if isinstance(c, Space):
+            #     self.height += c.height
 
             if isinstance(c, Entity):
                 c.world_parent = self
-                c.position = (0, -height, 0)
+                c.position = (0, -self.height, 0)
 
                 if isinstance(c, InputField):
                     if self._prev_input_field:
@@ -60,15 +60,15 @@ class WindowPanel(Draggable):
                 if isinstance(c, Text):
                     c.origin = (-.5, .5)
                     c.x = -.48
-                    height += len(c.lines)
+                    self.height += len(c.lines)
 
                 elif isinstance(c, Button):
                     c.world_parent = self
                     c.scale = (.9, 1)
                     if hasattr(c, 'height'):
-                        c.scale_y = height
+                        c.scale_y = self.height
                     c.model = Quad(aspect=c.world_scale_x/c.world_scale_y)
-                    height += c.scale_y
+                    self.height += c.scale_y
                     # c.y -= c.scale_y/2
 
                 elif isinstance(c, Slider):
@@ -76,23 +76,24 @@ class WindowPanel(Draggable):
                     c.x = -.5 * .9
                     c.scale = (.9*2, 20)
                     # print('-------------', c.scale_y * c.height)
-                    height += 1
+                    if self.updateShilderHeight:
+                        print("HIHO")
+                        self.height += 1
 
-                elif hasattr(c, 'scale_y'):
-                    height += c.scale_y
+                # elif hasattr(c, 'scale_y'):
+                #     self.height += c.scale_y
 
                 if hasattr(c, 'text_entity') and c.text_entity is not None:
                     c.text_entity.world_scale = (1,1,1)
 
-                height += spacing
-
-        self.panel.scale_y = height
+                self.height += self.spacing
+        if self.updateShilderHeight:
+            self.panel.scale_y = self.height
         self.panel.model = Quad(aspect=self.panel.world_scale_x/self.panel.world_scale_y, radius=.025)
         self.panel.origin = (0, .5)
 
 
     def on_enable(self):
-        pass
         try:
             if self.popup:
                 self.bg.enabled = True
@@ -112,18 +113,8 @@ if __name__ == '__main__':
     WindowPanel is an easy way to create UI. It will automatically layout the content.
     '''
     from ursina import Ursina, ButtonGroup
+    from ursina import *
     app = Ursina()
-    wp = WindowPanel(
-        title='Custom Window',
-        content=(
-            Text('Name:'),
-            InputField(name='name_field'),
-            Button(text='Submit', color=color.azure),
-            Slider(),
-            Slider(),
-            ButtonGroup(('test', 'eslk', 'skffk'))
-            ),
-        )
-    wp.y = wp.panel.scale_y / 2 * wp.scale_y    # center the window panel
+    wp = WindowPanel(title='Custom Window',popup = False,content=(Text('Name:'),InputField(name='name_field'),Button(text='Submit', color=color.azure),Slider(),Slider(),ButtonGroup(('test', 'eslk', 'skffk')),ButtonGroup(("Change color","Change scale"))))
 
     app.run()

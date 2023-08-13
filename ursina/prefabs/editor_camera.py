@@ -1,4 +1,4 @@
-from ursina import Entity, camera, destroy, held_keys, mouse, curve, lerp, clamp, time, Vec2, Vec3, slerp
+from ursina import Entity, camera, destroy, held_keys, mouse, curve, lerp, clamp, time, Vec2, Vec3, slerp,color
 
 class EditorCamera(Entity):
 
@@ -13,13 +13,15 @@ class EditorCamera(Entity):
         self.move_speed = 10
         self.zoom_speed = 1.25
         self.zoom_smoothing = 8
-        self.rotate_around_mouse_hit = False
+        self.rotate_around_mouse_hit = True
+        self.rotate_around_mouse_hit_helper_key = "alt"
 
         self.smoothing_helper = Entity(add_to_scene_entities=False)
         self.rotation_smoothing = 0
         self.look_at = self.smoothing_helper.look_at
         self.look_at_2d = self.smoothing_helper.look_at_2d
         self.rotate_key = 'right mouse'
+        self.helper_zoom_key  = "control"
 
         for key, value in kwargs.items():
             setattr(self, key, value)
@@ -28,7 +30,7 @@ class EditorCamera(Entity):
         self.perspective_fov = camera.fov
         self.orthographic_fov = camera.fov
         self.on_destroy = self.on_disable
-        self.hotkeys = {'toggle_orthographic':'shift+p', 'focus':'f', 'reset_center':'shift+f'}
+        self.hotkeys = {'toggle_orthographic':'control+shift+p', 'focus':'f', 'reset_center':'shift+f'}
 
 
     def on_enable(self):
@@ -54,6 +56,7 @@ class EditorCamera(Entity):
 
 
     def input(self, key):
+        # print(key)
         combined_key = ''.join(e+'+' for e in ('control', 'shift', 'alt') if held_keys[e] and not e == key) + key
 
         if combined_key == self.hotkeys['toggle_orthographic']:
@@ -74,7 +77,7 @@ class EditorCamera(Entity):
             self.animate_position(mouse.world_point, duration=.1, curve=curve.linear)
 
 
-        elif key == 'scroll up':
+        elif key == 'scroll up' and held_keys[self.helper_zoom_key]:
             if not camera.orthographic:
                 target_position = self.world_position
                 # if mouse.hovered_entity and not mouse.hovered_entity.has_ancestor(camera):
@@ -86,7 +89,7 @@ class EditorCamera(Entity):
                 self.target_fov -= self.zoom_speed * (abs(self.target_fov)*.1)
                 self.target_fov = clamp(self.target_fov, 1, 200)
 
-        elif key == 'scroll down':
+        elif key == 'scroll down' and held_keys[self.helper_zoom_key]:
             if not camera.orthographic:
                 # camera.world_position += camera.back * self.zoom_speed * 100 * time.dt * (abs(camera.z)*.1)
                 self.target_z -= self.zoom_speed * (abs(self.target_z)*.1)
@@ -95,7 +98,7 @@ class EditorCamera(Entity):
                 self.target_fov = clamp(self.target_fov, 1, 200)
 
         elif key == 'right mouse down' or key == 'middle mouse down':
-            if mouse.hovered_entity and self.rotate_around_mouse_hit:
+            if mouse.hovered_entity and self.rotate_around_mouse_hit and held_keys[self.rotate_around_mouse_hit_helper_key]:
                 org_pos = camera.world_position
                 self.world_position = mouse.world_point
                 camera.world_position = org_pos

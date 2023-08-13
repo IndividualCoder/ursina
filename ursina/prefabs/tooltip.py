@@ -11,6 +11,8 @@ class Tooltip(Text):
         for key, value in kwargs.items():
             setattr(self, key, value)
 
+        self.original_scale = self.scale
+
 
     def update(self):
         self.position = mouse.position
@@ -20,7 +22,7 @@ class Tooltip(Text):
             )
         self.x = min(self.x, (.5 * window.aspect_ratio) - self.width - self.size - .005)
         self.y = min(self.y, .5 - (self.height + self.size + .005))
-        self.z = -99
+        self.z = -9
 
 if __name__ == '__main__':
     app = Ursina()
@@ -30,8 +32,7 @@ if __name__ == '__main__':
 '''Summon a <blue>rain
 storm <default>to deal 5 <blue>water
 damage <default>to <red>everyone, <default>including <orange>yourself. <default>
-Lasts for 4 rounds.'''.replace('\n', ' '),
-        background_color=color.red
+Lasts for 4 rounds.'''.replace('\n', ' ')
 )
 
     tooltip_test.enabled = True

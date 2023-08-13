@@ -15,15 +15,17 @@ def size(size_bytes):
 
 
 class MemoryCounter(Text):
-    def __init__(self, **kwargs):
+    def __init__(self,enabled = True, **kwargs):
         super().__init__(ignore=False)
         self.parent = camera.ui
         self.position = window.bottom_right - Vec2(.025,0)
         self.origin = (0.5, -0.5)
+        self.enabled = enabled
+        self.always_on_top = True
 
         self.process = psutil.Process(os.getpid())
         self.i = 0
-        self.text = 'eofiwjeofiwejf'
+        self.text = 'Processing'
 
         for key, value in kwargs.items():
             setattr(self, key, value)

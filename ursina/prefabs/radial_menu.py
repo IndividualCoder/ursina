@@ -1,5 +1,5 @@
 from ursina import *
-
+from ursina import curve
 
 class RadialMenu(Entity):
     def __init__(self, buttons=list(), **kwargs):

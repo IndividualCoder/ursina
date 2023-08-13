@@ -2,12 +2,13 @@ from ursina import *
 
 
 class Slider(Entity):
-    def __init__(self, min=0, max=1, default=None, height=Text.size, text='', dynamic=False, radius=Text.size/2, bar_color=color.black66, **kwargs):
+    def __init__(self, min=0, max=1, default=None, height=Text.size, text='',hide_text = False, dynamic=False, radius=Text.size/2, bar_color=color.black66, **kwargs):
         super().__init__(add_to_scene_entities=False) # add later, when __init__ is done
         self.parent = camera.ui
         self.vertical = False
         self.min = min
         self.max = max
+        self.hide_text = hide_text
 
         if default is None:
             default = min
@@ -24,9 +25,10 @@ class Slider(Entity):
             origin_x=-0.25, collider='box', color=bar_color)
 
         self.knob = Draggable(parent=self, min_x=0, max_x=.5, min_y=0, max_y=.5, step=self.step,
-            model=Quad(radius=Text.size/2, scale=(Text.size, height)), collider='box', color=color.light_gray,
-            text='0', text_origin=(0, -.55), z=-.1)
-
+            model=Quad(radius=Text.size/2, scale=(Text.size, height)), collider='box', color=color.light_gray,text = "0",
+             text_origin=(0, -.55), z=-.1)
+        if self.hide_text:
+            self.knob.text_entity.visible = False
         def bg_click():
             self.knob.x = mouse.point[0]
             self.knob.start_dragging()
@@ -48,9 +50,7 @@ class Slider(Entity):
         self._prev_value = self.default
         self.value = self.default
         self.dynamic = dynamic    # if set to True, will call on_value_changed() while dragging. if set to False, will only call on_value_changed() after dragging.
-
-
-        self.knob.text_entity.text = str(round(self.default, 2))
+##        self.knob.text_entity.text = str(round(self.default, 2))
 
         for key, value in kwargs.items():
             setattr(self, key, value)
@@ -113,7 +113,7 @@ class Slider(Entity):
         invoke(self._update_text, delay=1/60)
 
     def _update_text(self):
-            self.knob.text_entity.text = str(round(self.value, 2))
+            self.knob.text_entity.text = str(int(self.value))
 
 
     def __setattr__(self, name, value):
