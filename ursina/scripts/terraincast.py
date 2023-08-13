@@ -69,6 +69,8 @@ if __name__ == '__main__':
 
 
     hv = terrain_entity.model.height_values
+    print(hv)
+    camera.y = 90
 
     def update():
         direction = Vec3(held_keys['d'] - held_keys['a'], 0, held_keys['w'] - held_keys['s']).normalized()

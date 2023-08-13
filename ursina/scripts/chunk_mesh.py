@@ -3,7 +3,7 @@ from math import floor
 
 app = Ursina()
 t = time.time()
-
+camera.y =200 
 application.asset_folder = application.asset_folder.parent.parent
 terrain = Entity(model=Terrain('heightmap_1', skip=8), texture='grass', texture_scale=(3,3), scale=256)
 

@@ -10,6 +10,7 @@ class Scrollable():
         self.scroll_smoothing = 16
         self.axis = 'y'
         self.target_value = None
+        self.OPPO = False
 
         for key, value in kwargs.items():
             setattr(self, key, value)
@@ -37,9 +38,13 @@ class Scrollable():
             if key == 'scroll down':
                 self.target_value += self.scroll_speed
 
+            if not self.OPPO:
+                self.target_value = max(min(self.target_value, self.max), self.min)
+            else:
+                self.target_value = max(min(self.target_value, self.min), self.max)
 
-            self.target_value = max(min(self.target_value, self.max), self.min)
-
+    def update_target(self,var,val):
+        setattr(self,var,val)
 
 if __name__ == '__main__':
     '''
