@@ -4,6 +4,7 @@ import textwrap
 from ursina import color as colour
 
 
+# made tool tip work as expected
 class Button(Entity):
 
     color = color.black66
@@ -25,6 +26,10 @@ class Button(Entity):
         else:
             self.on_key_press = on_key_press
         self.ToSubtract = ToSubtract #To small text
+        if "tool_tip" in kwargs:
+            self.ToolTip = kwargs["tool_tip"]
+        else:
+            self.ToolTip = None
         self.partKey = partKey
         self.Key = Key  # Custom Key attribute
         for key, value in kwargs.items():
@@ -218,6 +223,8 @@ class Button(Entity):
             if self.hover_highlight:
                 self.hover_highlight_function()
 
+            if self.ToolTip is not None:
+                self.ToolTip.enable()
     def on_mouse_exit(self):
         if not self.disabled and self.model:
             self.model.setColorScale(self.color)
@@ -230,6 +237,8 @@ class Button(Entity):
             if self.on_unhover is not None:
                 self.on_unhover()
 
+            if self.ToolTip is not None:
+                self.ToolTip.disable()
 
     def on_click(self):
         if self.disabled or self.hover_highlight:
