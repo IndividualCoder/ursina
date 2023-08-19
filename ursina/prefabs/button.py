@@ -9,13 +9,17 @@ class Button(Entity):
 
     color = color.black66
     default_model = None  # will default to rounded Quad
+    default_values = {
+        'parent':camera.ui,
+        'name':'button', 'enabled':True, 'eternal':False, 'position':Vec3(0,0,0), 'rotation':Vec3(0,0,0), 'scale':Vec3(.3,.3,.3), 'model':default_model, 'origin':Vec3(0,0,0),
+        'shader':None, 'texture':None, 'color':color}
 
     def __init__(self, text='', radius=.1, ToSubtract=0, Key=None,partKey = "",on_key_press = None,on_hover = None,on_unhover = None,hover_highlight = False,hover_highlight_color = colour.white,hover_highlight_size = .2,hover_highlight_button = False, **kwargs):
         super().__init__()
         self.hover_highlight_color = hover_highlight_color
         self.hover_highlight = hover_highlight
         self.hover_highlight_button = hover_highlight_button
-        self.parent = camera.ui
+        self.parent  = camera.ui
 
         self.disabled = False
         self._on_click = None
@@ -27,9 +31,9 @@ class Button(Entity):
             self.on_key_press = on_key_press
         self.ToSubtract = ToSubtract #To small text
         if "tool_tip" in kwargs:
-            self.ToolTip = kwargs["tool_tip"]
+            self.tool_tip = kwargs["tool_tip"]
         else:
-            self.ToolTip = None
+            self.tool_tip = None
         self.partKey = partKey
         self.Key = Key  # Custom Key attribute
         for key, value in kwargs.items():
@@ -223,8 +227,9 @@ class Button(Entity):
             if self.hover_highlight:
                 self.hover_highlight_function()
 
-            if self.ToolTip is not None:
-                self.ToolTip.enable()
+            if self.tool_tip is not None:
+                self.tool_tip.enable()
+
     def on_mouse_exit(self):
         if not self.disabled and self.model:
             self.model.setColorScale(self.color)
@@ -237,8 +242,8 @@ class Button(Entity):
             if self.on_unhover is not None:
                 self.on_unhover()
 
-            if self.ToolTip is not None:
-                self.ToolTip.disable()
+            if self.tool_tip is not None:
+                self.tool_tip.disable()
 
     def on_click(self):
         if self.disabled or self.hover_highlight:
