@@ -49,7 +49,7 @@ class Entity(NodePath):
     default_values = {
         'parent':scene,
         'name':'entity', 'enabled':True, 'eternal':False, 'position':Vec3(0,0,0), 'rotation':Vec3(0,0,0), 'scale':Vec3(1,1,1), 'model':None, 'origin':Vec3(0,0,0),
-        'shader':None, 'texture':None, 'color':color.white,'collider':True}
+        'shader':None, 'texture':None, 'color':color.white,'collider':None}
 
     def __init__(self, add_to_scene_entities=True,material = None, **kwargs):
         self._children = []
