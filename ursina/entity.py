@@ -47,9 +47,9 @@ class Entity(NodePath):
     rotation_directions = (-1,-1,1)
     default_shader = None
     default_values = {
-        # 'parent':scene,
+        'parent':scene,
         'name':'entity', 'enabled':True, 'eternal':False, 'position':Vec3(0,0,0), 'rotation':Vec3(0,0,0), 'scale':Vec3(1,1,1), 'model':None, 'origin':Vec3(0,0,0),
-        'shader':None, 'texture':None, 'color':color.white, 'collider':None}
+        'shader':None, 'texture':None, 'color':color.white,'collider':True}
 
     def __init__(self, add_to_scene_entities=True,material = None, **kwargs):
         self._children = []
@@ -66,7 +66,7 @@ class Entity(NodePath):
             super().setMaterial(material)
 
         self._parent = None
-        self.parent = scene     # default parent is scene, which means it's in 3d space. to use UI space, set the parent to camera.ui instead.
+        self.parent = Entity.default_values['parent']     # default parent is scene, which means it's in 3d space. to use UI space, set the parent to camera.ui instead.
         self.add_to_scene_entities = add_to_scene_entities # set to False to be ignored by the engine, but still get rendered.
         if add_to_scene_entities:
             scene.entities.append(self)
@@ -1119,6 +1119,7 @@ class Entity(NodePath):
 
         changes = dict()
         for key, value in target_class.default_values.items():
+            print(target_class.default_values.items())
             attr = getattr(self, key)
 
             if hasattr(attr, 'name') and attr.name:
@@ -1127,8 +1128,8 @@ class Entity(NodePath):
                     attr = attr.split('.')[0]
 
 
-            if attr == target_class.default_values[key]:
-                continue
+            # if attr == target_class.default_values[key]:
+            #     continue
 
             # print('attr changed:', key, 'from:', target_class.default_values[key], 'to:', attr)
             if key == 'color':
@@ -1138,11 +1139,15 @@ class Entity(NodePath):
                 elif isinstance(attr, Color):
                     attr = f"'{color.rgb_to_hex(*attr)}'"
 
-            elif isinstance(attr, str):
+
+            # if key == "collider":
+            #     attr = attr
+
+            elif isinstance(attr, str) and key != "parent":
                 attr = f"'{attr}'"
 
-            if attr == "'mesh'":
-                continue
+            # if attr == "'mesh'":
+            #     continue
 
             changes[key] = attr
         return changes
@@ -1157,6 +1162,9 @@ class Entity(NodePath):
     def __deepcopy__(self, memo):
         return eval(repr(self))
 
+    def __dict__(self):
+        changes = self.get_changes(self.__class__)
+        return {"cls":self.__class__.__name__,"args":"(" +  ''.join(f'{key}={value}, ' for key, value in changes.items()) + ")"}
 
 #------------
 # ANIMATIONS

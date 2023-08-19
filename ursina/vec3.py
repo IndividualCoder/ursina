@@ -12,6 +12,8 @@ class Vec3(PandaVec3):
     def __repr__(self):
         return super().__repr__().replace('LVector3f', 'Vec3')
 
+    def __dict__(self):
+        return (self.x,self.y,self.z)
 
     def __iadd__(self, value):
         if len(value) % 3 == 0:

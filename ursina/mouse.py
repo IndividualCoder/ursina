@@ -11,7 +11,7 @@ from ursina.camera import instance as camera
 from ursina.hit_info import HitInfo
 from ursina.ursinamath import distance
 
-#made mouse support display regions
+
 class Mouse():
 
     def __init__(self):
