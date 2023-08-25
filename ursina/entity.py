@@ -46,33 +46,42 @@ class Entity(NodePath):
 
     rotation_directions = (-1,-1,1)
     default_shader = None
+    default_values = {
+        'parent':scene,
+        'name':'entity', 'enabled':True, 'eternal':False, 'position':Vec3(0,0,0), 'rotation':Vec3(0,0,0), 'scale':Vec3(1,1,1), 'model':None, 'origin':Vec3(0,0,0),
+        'shader':None, 'texture':None, 'color':color.white,'collider':None}
 
-    def __init__(self, add_to_scene_entities=True, **kwargs):
+    def __init__(self, add_to_scene_entities=True,material = None, **kwargs):
+        self._children = []
         super().__init__(self.__class__.__name__)
 
-        self.name = camel_to_snake(self.type)
+        self.name = camel_to_snake(self.__class__.__name__)
         self.enabled = True     # disabled entities will not be visible nor run code.
         self.visible = True
         self.ignore = False     # if True, will not try to run code.
         self.eternal = False    # eternal entities does not get destroyed on scene.clear()
         self.ignore_paused = False      # if True, will still run when application is paused. useful when making a pause menu for example.
         self.ignore_input = False
+        if material is not None:
+            super().setMaterial(material)
 
-        self.parent = scene     # default parent is scene, which means it's in 3d space. to use UI space, set the parent to camera.ui instead.
-        self.add_to_scene_entities = add_to_scene_entities # set to False to be ignored by the engine, but still get rendered.
+        self._parent = None
+        self.parent = Entity.default_values['parent']     # default parent is scene, which means it's in 3d space. to use UI space, set the parent to camera.ui instead.
+        self.add_to_scene_entities = add_to_scene_entities # set to False to be ignored by the engine, but still get endered.
         if add_to_scene_entities:
             scene.entities.append(self)
 
         self.model = None       # set model with model='model_name' (without file type extension)
         self.color = color.white
         self.texture = None     # set model with texture='texture_name'. requires a model to be set beforehand.
-        self.render_queue = 0
+        self.render_queue = 0   # for custom sorting in case of conflict. To sort things in 2d, set .z instead of using this.
         self.double_sided = False
+        self._shader_inputs = {}
         if Entity.default_shader:
             self.shader = Entity.default_shader
 
         self.collision = False  # toggle collision without changing collider.
-        self.collider = None    # set to 'box'/'sphere'/'mesh' for auto fitted collider.
+        self.collider = None    # set to 'box'/'sphere'/'capsule'/'mesh' for auto fitted collider.
         self.scripts = []   # add with add_script(class_instance). will assign an 'entity' variable to the script.
         self.animations = []
         self.hovered = False    # will return True if mouse hovers entity.
@@ -126,6 +135,7 @@ class Entity(NodePath):
                 self.on_disable()
 
 
+
     def _list_to_vec(self, value):
         if isinstance(value, (int, float, complex)):
             return Vec3(value, value, value)
@@ -146,10 +156,10 @@ class Entity(NodePath):
         return new_value
 
 
-    def enable(self):
+    def enable(self): # same as .enabled = True
         self.enabled = True
 
-    def disable(self):
+    def disable(self): # same as .enabled = False
         self.enabled = False
 
 
@@ -189,7 +199,7 @@ class Entity(NodePath):
             for c in self.children:
                 c.eternal = value
 
-        elif name == 'model':
+        if name == 'model':
             if value is None:
                 if hasattr(self, 'model') and self.model:
                     self.model.removeNode()
@@ -246,19 +256,11 @@ class Entity(NodePath):
                 self.model.setColorScale(value)
                 object.__setattr__(self, name, value)
 
-
-        elif name == 'collision' and hasattr(self, 'collider') and self.collider:
-            if value:
-                self.collider.node_path.unstash()
-            else:
-                self.collider.node_path.stash()
-
-            object.__setattr__(self, name, value)
-            return
-
         elif name == 'render_queue':
             if self.model:
                 self.model.setBin('fixed', value)
+            #This is the new thing added make render_queue work for text
+            #By owengaming001
             elif hasattr(self, 'text_nodes'):
                 #Updates the render queue of text nodes if they're present.
                 #This is because otherwise the render queue doesn't work properly for text.
@@ -269,6 +271,7 @@ class Entity(NodePath):
 
         elif name == 'double_sided':
             self.setTwoSided(value)
+
 
         elif hasattr(self, '_shader') and self.shader and name in self._shader.default_input:
             # print('set shader input:', name, value)
@@ -285,34 +288,35 @@ class Entity(NodePath):
 
     @property
     def parent(self):
-        try:
-            return self._parent
-        except:
-            return None
+        return self._parent
 
     @parent.setter
     def parent(self, value):
+        if hasattr(self, '_parent') and self._parent and hasattr(self._parent, '_children') and self in self._parent._children:
+            self._parent._children.remove(self)
+
+        if hasattr(value, '_children') and not self in value._children:
+            value._children.append(self)
+
+        self.reparent_to(value)
         self._parent = value
-        if value is None:
-            destroy(self)
-        else:
-            try:
-                self.reparentTo(value)
-            except:
-                raise ValueError(f'invalid parent: value')
+
 
     @property
     def world_parent(self):
-        return self.parent
+        return self._parent
 
     @world_parent.setter
     def world_parent(self, value):  # change the parent, but keep position, rotation and scale
-        self.reparent_to(value)
+        if hasattr(self, '_parent') and self._parent and hasattr(self._parent, '_children') and self in self._parent._children:
+            self._parent._children.remove(self)
 
+        if hasattr(value, '_children') and not self in value._children:
+            value._children.append(self)
 
-    @property
-    def type(self): # get class name.
-        return self.__class__.__name__
+        self.wrtReparentTo(value)
+        self._parent = value
+
 
     @property
     def types(self): # get all class names including those this inhertits from.
@@ -373,6 +377,10 @@ class Entity(NodePath):
             self._collider = SphereCollider(entity=self, center=-self.origin)
             self._collider.name = value
 
+        elif value == 'capsule':
+            self._collider = CapsuleCollider(entity=self, center=-self.origin)
+            self._collider.name = value
+
         elif value == 'mesh' and self.model:
             self._collider = MeshCollider(entity=self, mesh=None, center=-self.origin)
             self._collider.name = value
@@ -391,6 +399,20 @@ class Entity(NodePath):
         self.collision = bool(self.collider)
         return
 
+    @property
+    def collision(self):
+        return self._collision
+
+    @collision.setter
+    def collision(self, value):
+        self._collision = value
+        if not hasattr(self, 'collider') or not self.collider:
+            return
+
+        if value:
+            self.collider.node_path.unstash()
+        else:
+            self.collider.node_path.stash()
 
     @property
     def origin(self):
@@ -433,7 +455,7 @@ class Entity(NodePath):
 
     @property
     def world_position(self):
-        return Vec3(self.get_position(render))
+        return Vec3(self.get_position(scene))
 
     @world_position.setter
     def world_position(self, value):
@@ -442,27 +464,27 @@ class Entity(NodePath):
         if isinstance(value, Vec2):
             value = Vec3(*value, self.z)
 
-        self.setPos(render, Vec3(value[0], value[1], value[2]))
+        self.setPos(scene, Vec3(value[0], value[1], value[2]))
 
     @property
     def world_x(self):
-        return self.getX(render)
+        return self.getX(scene)
     @property
     def world_y(self):
-        return self.getY(render)
+        return self.getY(scene)
     @property
     def world_z(self):
-        return self.getZ(render)
+        return self.getZ(scene)
 
     @world_x.setter
     def world_x(self, value):
-        self.setX(render, value)
+        self.setX(scene, value)
     @world_y.setter
     def world_y(self, value):
-        self.setY(render, value)
+        self.setY(scene, value)
     @world_z.setter
     def world_z(self, value):
-        self.setZ(render, value)
+        self.setZ(scene, value)
 
     @property
     def position(self):
@@ -497,6 +519,28 @@ class Entity(NodePath):
     @z.setter
     def z(self, value):
         self.setZ(value)
+
+    @property
+    def position_x(self):
+        return self.getX()
+    @position_x.setter
+    def x(self, value):
+        self.setX(value)
+
+    @property
+    def position_y(self):
+        return self.getY()
+    @position_y.setter
+    def y(self, value):
+        self.setY(value)
+
+    @property
+    def position_z(self):
+        return self.getZ()
+    @position_z.setter
+    def z(self, value):
+        self.setZ(value)
+
 
     @property
     def X(self):    # shortcut for int(entity.x)
@@ -585,34 +629,34 @@ class Entity(NodePath):
 
     @property
     def world_scale(self):
-        return Vec3(*self.getScale(base.render))
+        return Vec3(*self.getScale(scene))
     @world_scale.setter
     def world_scale(self, value):
         if isinstance(value, (int, float, complex)):
             value = Vec3(value, value, value)
 
-        self.setScale(base.render, value)
+        self.setScale(scene, value)
 
     @property
     def world_scale_x(self):
-        return self.getScale(base.render)[0]
+        return self.getScale(scene)[0]
     @world_scale_x.setter
     def world_scale_x(self, value):
-        self.setScale(base.render, Vec3(value, self.world_scale_y, self.world_scale_z))
+        self.setScale(scene, Vec3(value, self.world_scale_y, self.world_scale_z))
 
     @property
     def world_scale_y(self):
-        return self.getScale(base.render)[1]
+        return self.getScale(scene)[1]
     @world_scale_y.setter
     def world_scale_y(self, value):
-        self.setScale(base.render, Vec3(self.world_scale_x, value, self.world_scale_z))
+        self.setScale(scene, Vec3(self.world_scale_x, value, self.world_scale_z))
 
     @property
     def world_scale_z(self):
-        return self.getScale(base.render)[2]
+        return self.getScale(scene)[2]
     @world_scale_z.setter
     def world_scale_z(self, value):
-        self.setScale(base.render, Vec3(self.world_scale_x, self.world_scale_y, value))
+        self.setScale(scene, Vec3(self.world_scale_x, self.world_scale_y, value))
 
     @property
     def scale(self):
@@ -667,19 +711,19 @@ class Entity(NodePath):
 
     @property
     def forward(self): # get forward direction.
-        return Vec3(*render.getRelativeVector(self, (0, 0, 1)))
+        return Vec3(*scene.getRelativeVector(self, (0, 0, 1)))
     @property
     def back(self): # get backwards direction.
         return -self.forward
     @property
     def right(self): # get right direction.
-        return Vec3(*render.getRelativeVector(self, (1, 0, 0)))
+        return Vec3(*scene.getRelativeVector(self, (1, 0, 0)))
     @property
     def left(self): # get left direction.
         return -self.right
     @property
     def up(self): # get up direction.
-        return Vec3(*render.getRelativeVector(self, (0, 1, 0)))
+        return Vec3(*scene.getRelativeVector(self, (0, 1, 0)))
     @property
     def down(self): # get down direction.
         return -self.up
@@ -687,12 +731,13 @@ class Entity(NodePath):
     @property
     def screen_position(self): # get screen position(ui space) from world space.
         from ursina import camera
-        p3 = camera.getRelativePoint(self, Vec3.zero())
-        full = camera.lens.getProjectionMat().xform(Vec4(*p3, 1))
-        recip_full3 = 1 / full[3]
-        p2 = Vec3(full[0], full[1], full[2]) * recip_full3
-        screen_pos = Vec3(p2[0]*camera.aspect_ratio/2, p2[1]/2, 0)
-        return screen_pos
+        p3d = camera.getRelativePoint(self, Vec3.zero())
+        full = camera.lens.getProjectionMat().xform(Vec4(*p3d, 1))
+        recip_full3 = 1
+        if full[3] > 0:
+            recip_full3 = 1 / full[3]
+        p2d = full * recip_full3
+        return Vec2(p2d[0]*camera.aspect_ratio/2, p2d[1]/2)
 
     @property
     def shader(self):
@@ -737,8 +782,17 @@ class Entity(NodePath):
         raise ValueError(f'{value} is not a Shader')
 
 
+    def get_shader_input(self, name):
+        if name in self._shader_inputs:
+            return self._shader_inputs[name]
+        return None
+
 
     def set_shader_input(self, name, value):
+        self._shader_inputs[name] = value
+        if isinstance(value, str):
+            value = load_texture(value)
+
         if isinstance(value, Texture):
             value = value._texture    # make sure to send the panda3d texture to the shader
 
@@ -788,9 +842,10 @@ class Entity(NodePath):
         if not hasattr(self, '_texture_scale'):
             return Vec2(1,1)
         return self._texture_scale
+
     @texture_scale.setter
-    def texture_scale(self, value):
-        self._texture_scale = value
+    def texture_scale(self, value):  # how many times the texture should repeat, eg. texture_scale=(8,8).
+        self._texture_scale = Vec2(*value)
         if self.model and self.texture:
             self.model.setTexScale(TextureStage.getDefault(), value[0], value[1])
             self.set_shader_input('texture_scale', value)
@@ -803,6 +858,7 @@ class Entity(NodePath):
 
     @texture_offset.setter
     def texture_offset(self, value):
+        value = Vec2(*value)
         if self.model and self.texture:
             self.model.setTexOffset(TextureStage.getDefault(), value[0], value[1])
             self.texture = self.texture
@@ -868,6 +924,15 @@ class Entity(NodePath):
         if value:
             self.setBillboardPointEye(value)
 
+    @property
+    def wireframe(self):
+        return self._wireframe
+
+    @wireframe.setter
+    def wireframe(self, value):
+        self._wireframe = value
+        self.setRenderModeWireframe(value)
+
 
     def generate_sphere_map(self, size=512, name=f'sphere_map_{len(scene.entities)}'):
         from ursina import camera
@@ -920,20 +985,15 @@ class Entity(NodePath):
         return Bounds(start=_bounds.start*self.scale, end=_bounds.end*self.scale, center=_bounds.center, size=_bounds.size*self.scale)
 
 
-    def reparent_to(self, entity):
-        if entity is not None:
-            self.wrtReparentTo(entity)
-
-        self._parent = entity
-
-
-    def get_position(self, relative_to=scene):
+    def get_position(self, relative_to=scene):  # get position relative to on other Entity. In most cases, use .position instead.
         return self.getPos(relative_to)
 
 
-    def set_position(self, value, relative_to=scene):
+    def set_position(self, value, relative_to=scene): # set position relative to on other Entity. In most cases, use .position instead.
         self.setPos(relative_to, Vec3(value[0], value[1], value[2]))
 
+    def set_position_mod(self,value):
+        self.position = value
 
     def rotate(self, value, relative_to=None):  # rotate around local axis.
         if not relative_to:
@@ -971,14 +1031,18 @@ class Entity(NodePath):
             self.setAttrib(CullFaceAttrib.make(CullFaceAttrib.MCullCounterClockwise))
 
 
-    def look_at(self, target, axis='forward'):
+    def look_at(self, target, axis='forward', up=None): # up defaults to self.up
         from panda3d.core import Quat
         if isinstance(target, Entity):
             target = Vec3(*target.world_position)
         elif not isinstance(target, Vec3):
             target = Vec3(*target)
 
-        self.lookAt(target, Vec3(0,0,1))
+        up_axis = self.up
+        if up:
+            up_axis = up
+        self.lookAt(target, up_axis)
+
         if axis == 'forward':
             return
 
@@ -1008,9 +1072,11 @@ class Entity(NodePath):
 
 
     def has_ancestor(self, possible_ancestor):
+        if self.parent == possible_ancestor:
+            return True
+
         p = self
         if isinstance(possible_ancestor, Entity):
-            # print('ENTITY')
             for i in range(100):
                 if p.parent:
                     if p.parent == possible_ancestor:
@@ -1018,31 +1084,30 @@ class Entity(NodePath):
 
                     p = p.parent
 
-        if isinstance(possible_ancestor, list) or isinstance(possible_ancestor, tuple):
-            # print('LIST OR TUPLE')
-            for e in possible_ancestor:
-                for i in range(100):
-                    if p.parent:
-                        if p.parent == e:
-                            return True
-                            break
-                        p = p.parent
+        return False
 
-        elif isinstance(possible_ancestor, str):
-            # print('CLASS NAME', possible_ancestor)
-            for i in range(100):
-                if p.parent:
-                    if p.parent.__class__.__name__ == possible_ancestor:
-                        return True
-                        break
-                    p = p.parent
+    def has_disabled_ancestor(self):
+        p = self
+        for i in range(100):
+            if not p.parent:
+                return False
+            if not hasattr(p, 'parent') or not hasattr(p.parent, 'enabled'):
+                return False
+
+            p = p.parent
+
+            if p.enabled == False:
+                return True
 
         return False
 
-
     @property
     def children(self):
-        return [e for e in scene.entities if e.parent == self]
+        return [e for e in self._children if e]     # make sure list doesn't contain destroyed entities
+
+    @children.setter
+    def children(self, value):
+        self._children = value
 
 
     @property
@@ -1053,45 +1118,63 @@ class Entity(NodePath):
             'render_queue', 'always_on_top', 'collider', 'collision', 'scripts')
 
     def __str__(self):
-        return self.name
+        try:
+            return self.name
+        except:
+            return '*destroyed entity*'
+
+    def get_changes(self, target_class=None): # returns a dict of all the changes
+        if not target_class:
+            target_class = self.__class__
+
+        changes = dict()
+        for key, value in target_class.default_values.items():
+            # print(target_class.default_values.items())
+            attr = getattr(self, key)
+
+            if hasattr(attr, 'name') and attr.name:
+                attr = attr.name
+                if '.' in attr:
+                    attr = attr.split('.')[0]
+
+
+            # if attr == target_class.default_values[key]:
+            #     continue
+
+            # print('attr changed:', key, 'from:', target_class.default_values[key], 'to:', attr)
+            if key == 'color':
+                if isinstance(attr, str):
+                    if not attr.startswith('#'):
+                        attr = f'color.{attr}'
+                elif isinstance(attr, Color):
+                    attr = f"'{color.rgb_to_hex(*attr)}'"
+
+
+            # if key == "collider":
+            #     attr = attr
+
+            elif isinstance(attr, str) and key != "parent":
+                attr = f"'{attr}'"
+
+            # if attr == "'mesh'":
+            #     continue
+
+            changes[key] = attr
+        return changes
+
+
 
     def __repr__(self):
-        default_values = {
-            # 'parent':scene,
-            'name':'entity', 'enabled':True, 'eternal':False, 'position':Vec3(0,0,0), 'rotation':Vec3(0,0,0), 'scale':Vec3(1,1,1), 'model':None, 'origin':Vec3(0,0,0),
-            'shader':None, 'texture':None, 'color':color.white, 'collider':None}
-
-        changes = []
-        for key, value in default_values.items():
-            if not getattr(self, key) == default_values[key]:
-                if key == 'name' and hasattr(self, 'name'):
-                    changes.append(f"name='{getattr(self, key)}', ")
-                    continue
-                if key == 'model' and hasattr(self.model, 'name'):
-                    changes.append(f"model='{getattr(self, key).name}', ")
-                    continue
-                if key == 'shader' and self.shader:
-                    changes.append(f"shader='{getattr(self, key).name}', ")
-                    continue
-                if key == 'texture':
-                    changes.append(f"texture='{getattr(self, key).name.split('.')[0]}', ")
-                    continue
-                if key == 'collider':
-                    changes.append(f"collider='{getattr(self, key).name}', ")
-                    continue
-
-                value = getattr(self, key)
-                if isinstance(value, str):
-                    value = f"'{repr(value)}'"
-
-                changes.append(f"{key}={value}, ")
-
-        return f'{__class__.__name__}(' +  ''.join(changes) + ')'
+        changes = self.get_changes(self.__class__)
+        return f'{self.__class__.__name__}(' +  ''.join(f'{key}={value}, ' for key, value in changes.items()) + ')'
 
 
     def __deepcopy__(self, memo):
         return eval(repr(self))
 
+    def __dict__(self):
+        changes = self.get_changes(self.__class__)
+        return {"cls":self.__class__.__name__,"args":"(" +  ''.join(f'{key}={value}, ' for key, value in changes.items()) + ")"}
 
 #------------
 # ANIMATIONS
@@ -1139,11 +1222,35 @@ class Entity(NodePath):
             z = self.animate('z', value[2], duration, **kwargs)
         return x, y, z
 
+    def animate_position_x(self, value, duration=.1, **kwargs):
+        x = self.animate('x', value, duration,  **kwargs)
+        return x
+
+    def animate_position_y(self, value, duration=.1, **kwargs):
+        y = self.animate('y', value, duration,  **kwargs)
+        return y
+
+    def animate_position_z(self, value, duration=.1, **kwargs):
+        z = self.animate('z', value, duration,  **kwargs)
+        return z
+
     def animate_rotation(self, value, duration=.1,  **kwargs):
         x = self.animate('rotation_x', value[0], duration,  **kwargs)
         y = self.animate('rotation_y', value[1], duration,  **kwargs)
         z = self.animate('rotation_z', value[2], duration,  **kwargs)
         return x, y, z
+
+    def animate_rotation_x(self,value,duration=.1,**kwargs):
+        x = self.animate("rotation_",value,duration,**kwargs)
+        return x
+
+    def animate_rotation_y(self,value,duration=.1,**kwargs):
+        y  = self.animate("rotation_",value,duration,**kwargs)
+        return y
+
+    def animate_rotation_z(self,value,duration=.1,**kwargs):
+        z = self.animate("rotation_",value,duration,**kwargs)
+        return z
 
     def animate_scale(self, value, duration=.1, **kwargs):
         if isinstance(value, (int, float, complex)):
@@ -1161,23 +1268,28 @@ class Entity(NodePath):
         '''))
 
 
-    def shake(self, duration=.2, magnitude=1, speed=.05, direction=(1,1)):
+    def shake(self, duration=.2, magnitude=1, speed=.05, direction=(1,1), delay=0, attr_name='position', interrupt='finish'):
         import random
-        s = Sequence()
-        original_position = self.world_position
+
+        if hasattr(self, 'shake_sequence') and self.shake_sequence:
+            getattr(getattr(self, 'shake_sequence'), interrupt)()
+
+        self.shake_sequence = Sequence(Wait(delay))
+        original_position = getattr(self, attr_name)
+
         for i in range(int(duration / speed)):
-            s.append(Func(self.set_position,
+            self.shake_sequence.append(Func(setattr, self, attr_name,
                 Vec3(
                     original_position[0] + (random.uniform(-.1, .1) * magnitude * direction[0]),
                     original_position[1] + (random.uniform(-.1, .1) * magnitude * direction[1]),
                     original_position[2],
                 )))
-            s.append(Wait(speed))
-            s.append(Func(setattr, self, 'world_position', original_position))
+            self.shake_sequence.append(Wait(speed))
+            self.shake_sequence.append(Func(setattr, self, attr_name, original_position))
 
-        self.animations.append(s)
-        s.start()
-        return s
+        self.animations.append(self.shake_sequence)
+        self.shake_sequence.start()
+        return self.shake_sequence
 
     def animate_color(self, value, duration=.1, interrupt='finish', **kwargs):
         return self.animate('color', value, duration, interrupt=interrupt, **kwargs)
@@ -1245,7 +1357,7 @@ class Entity(NodePath):
         nP = collision.get_into_node_path().parent
         point = collision.get_surface_point(nP)
         point = Vec3(*point)
-        world_point = collision.get_surface_point(render)
+        world_point = collision.get_surface_point(scene)
         world_point = Vec3(*world_point)
         hit_dist = distance(self.world_position, world_point)
 
@@ -1259,7 +1371,7 @@ class Entity(NodePath):
         normal = collision.get_surface_normal(collision.get_into_node_path().parent).normalized()
         self.hit.normal = Vec3(*normal)
 
-        normal = collision.get_surface_normal(render).normalized()
+        normal = collision.get_surface_normal(scene).normalized()
         self.hit.world_normal = Vec3(*normal)
 
         self.hit.entities = []
@@ -1301,14 +1413,18 @@ if __name__ == '__main__':
 
 
     # test
-    e = Entity(model='cube', collider='box')
-    print(e.model_bounds)
-    print(e.bounds)
+    e = Entity(model='cube', collider='box', texture='shore', color=hsv(.3,1,.5))
+    print(repr(e))
+    # a = Entity()
+    # b = Entity(parent=a)
+
+
     # e.animate_x(3, duration=2, delay=.5, loop=True)
     # e.animate_position(Vec3(1,1,1), duration=1, loop=True)
     # e.animate_rotation(Vec3(45,45,45))
-    # e.animate_scale(2, duration=1, curve=curve.out_expo_boomerang, loop=True)
-    # e.animate_color(color.green, loop=True)
+    # e.ani
+    # mate_scale(2, duration=1, curve=curve.out_expo_boomerang, loop=True)
+    e.animate_color(color.green, loop=True,duration = 4)
     # e.shake()
     # e.fade_out(delay=.5)
     # e.fade_in(delay=2.5)
