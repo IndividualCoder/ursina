@@ -259,8 +259,15 @@ class Entity(NodePath):
         elif name == 'render_queue':
             if self.model:
                 self.model.setBin('fixed', value)
-
-
+            #This is the new thing added make render_queue work for text
+            #By owengaming001
+            elif hasattr(self, 'text_nodes'):
+                #Updates the render queue of text nodes if they're present.
+                #This is because otherwise the render queue doesn't work properly for text.
+                for tn in self.text_nodes:
+                    tn.setBin('fixed', value)
+                for img in self.images:
+                    img.setBin('fixed', value)
 
         elif name == 'double_sided':
             self.setTwoSided(value)
