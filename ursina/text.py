@@ -449,7 +449,7 @@ if __name__ == '__main__':
     # Text.default_font = 'consola.ttf'
     # color.text_color = color.lime
     Text.default_resolution = 1080 * Text.size
-    test = Text(text=descr, wordwrap=30)
+    # test = Text(text=descr, wordwrap=30)
     # test.align()
     # test = Text(descr)
 
@@ -462,8 +462,8 @@ if __name__ == '__main__':
     # test.origin = (0, 0)
     # test.wordwrap = 40
 
-    # text = Text(text=descr, wordwrap=10, origin=(-.5,.5), y=.25, background=True)
-    # Entity(parent=camera.ui, model='circle', scale=.05, color=color.yellow, y=text.y, z=-1)
+    text = Text(text=descr, wordwrap=100, origin=(-.5,.5), y=.25, background=True)
+    Entity(parent=camera.ui, model='circle', scale=.05, color=color.yellow, y=text.y, z=-1)
 
 
     def input(key):
