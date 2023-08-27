@@ -20,7 +20,7 @@ class Button(Entity):
         self.hover_highlight = hover_highlight
         self.hover_highlight_button = hover_highlight_button
         self.parent  = camera.ui
-
+        # self.render_queue
         self.disabled = False
         self._on_click = None
         self.on_hover = on_hover
@@ -44,7 +44,7 @@ class Button(Entity):
                 setattr(self, key, value)
 
         if self.hover_highlight:
-            self.highlight_button = Button(parent = self,enabled = True,radius=radius,color = color.clear,scale = (self.scale_x+hover_highlight_size,self.scale_y+hover_highlight_size),hover_highlight_button = True)
+            self.highlight_button = Button(parent = self,enabled = True,radius=radius,color = color.clear,scale = (self.scale_x+hover_highlight_size,self.scale_y+hover_highlight_size),hover_highlight_button = True,z = 0)
 
 
 
@@ -233,8 +233,8 @@ class Button(Entity):
     def on_mouse_exit(self):
         if not self.disabled and self.model:
             self.model.setColorScale(self.color)
-            # if self.hover_highlight:
-            #     self.hover_unhighlight_function()
+            if self.hover_highlight:
+                self.hover_unhighlight_function()
 
             if not mouse.left and self.highlight_scale != 1:
                 self.model.setScale(Vec3(1, 1, 1))
@@ -246,7 +246,7 @@ class Button(Entity):
                 self.tool_tip.disable()
 
     def on_click(self):
-        if self.disabled or self.hover_highlight:
+        if self.disabled or self.hover_highlight_button:
             return
 
         action = self._on_click
@@ -258,6 +258,8 @@ class Button(Entity):
 
         elif isinstance(action, str):
             exec(textwrap.dedent(action))
+
+        # print(self.name)
 
     def fit_to_text(self, radius=.1, padding=Vec2(Text.size * 1.5, Text.size)):
         if not self.text_entity.text or self.text_entity.text == '':
@@ -276,10 +278,10 @@ class Button(Entity):
 
     def hover_highlight_function(self):
         self.highlight_button.color = self.hover_highlight_color
-        print("mouse enter")
+        # print("mouse enter")
     def hover_unhighlight_function(self):
         self.highlight_button.color = color.clear
-        print("mouse exit")
+        # print("mouse exit")
 
 if __name__ == '__main__':
     from ursina import Ursina, application, Tooltip,print_on_screen

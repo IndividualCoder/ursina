@@ -19,7 +19,8 @@ class WindowPanel(Draggable):
         self._original_scale = self.scale
         self.spacing = .25
         self.height = 1 + self.spacing
-
+        self.CalcAndAddTextLines = True
+        self.ToAddHeight = 0
         for key, value in kwargs.items():
             setattr(self, key ,value)
 
@@ -30,7 +31,7 @@ class WindowPanel(Draggable):
 
         if self.popup:
             self.lock = Vec3(1,1,1)
-            self.bg = Button(parent=self, z=1, scale=(999, 999), color=color.white, highlight_color=color.white, pressed_color=color.white)
+            # self.bg = Button(parent=self, z=1, scale=(999, 999), color=color.white, highlight_color=color.white, pressed_color=color.white)
 ##            self.bg.on_click = self.close
 
         self.layout()
@@ -60,7 +61,10 @@ class WindowPanel(Draggable):
                 if isinstance(c, Text):
                     c.origin = (-.5, .5)
                     c.x = -.48
-                    self.height += len(c.lines)
+                    if self.CalcAndAddTextLines:
+                        self.height += len(c.lines)
+                    else:
+                        self.height += self.ToAddHeight
 
                 elif isinstance(c, Button):
                     c.world_parent = self

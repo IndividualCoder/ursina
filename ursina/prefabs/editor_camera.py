@@ -15,6 +15,7 @@ class EditorCamera(Entity):
         self.zoom_smoothing = 8
         self.rotate_around_mouse_hit = True
         self.rotate_around_mouse_hit_helper_key = "alt"
+        self.item_to_in_find_on_mouse_hit_rotate = []
 
         self.smoothing_helper = Entity(add_to_scene_entities=False)
         self.rotation_smoothing = 0
@@ -98,10 +99,16 @@ class EditorCamera(Entity):
                 self.target_fov = clamp(self.target_fov, 1, 200)
 
         elif key == 'right mouse down' or key == 'middle mouse down':
-            if mouse.hovered_entity and self.rotate_around_mouse_hit and held_keys[self.rotate_around_mouse_hit_helper_key]:
-                org_pos = camera.world_position
-                self.world_position = mouse.world_point
-                camera.world_position = org_pos
+            if self.item_to_in_find_on_mouse_hit_rotate != []:
+                if mouse.hovered_entity and self.rotate_around_mouse_hit and held_keys[self.rotate_around_mouse_hit_helper_key] and mouse.hovered_entity in self.item_to_in_find_on_mouse_hit_rotate:
+                    org_pos = camera.world_position
+                    self.world_position = mouse.world_point
+                    camera.world_position = org_pos
+            else:
+                if mouse.hovered_entity and self.rotate_around_mouse_hit and held_keys[self.rotate_around_mouse_hit_helper_key]:
+                    org_pos = camera.world_position
+                    self.world_position = mouse.world_point
+                    camera.world_position = org_pos
 
 
 
@@ -111,43 +118,47 @@ class EditorCamera(Entity):
             self.smoothing_helper.rotation_y += held_keys['gamepad right stick x'] * self.rotation_speed / 100
 
         elif held_keys[self.rotate_key]:
-            self.smoothing_helper.rotation_x -= mouse.velocity[1] * self.rotation_speed
-            self.smoothing_helper.rotation_y += mouse.velocity[0] * self.rotation_speed
+            if not hasattr(mouse.hovered_entity,"NotRotateOnHover"):
+                self.smoothing_helper.rotation_x -= mouse.velocity[1] * self.rotation_speed
+                self.smoothing_helper.rotation_y += mouse.velocity[0] * self.rotation_speed
 
-            self.direction = Vec3(
-                self.forward * (held_keys['w'] - held_keys['s'])
-                + self.right * (held_keys['d'] - held_keys['a'])
-                + self.up    * (held_keys['e'] - held_keys['q'])
-                ).normalized()
+                self.direction = Vec3(
+                    self.forward * (held_keys['w'] - held_keys['s'])
+                    + self.right * (held_keys['d'] - held_keys['a'])
+                    + self.up    * (held_keys['e'] - held_keys['q'])
+                    ).normalized()
 
-            self.position += self.direction * (self.move_speed + (self.move_speed * held_keys['shift']) - (self.move_speed*.9 * held_keys['alt'])) * time.dt
+                self.position += self.direction * (self.move_speed + (self.move_speed * held_keys['shift']) - (self.move_speed*.9 * held_keys['alt'])) * time.dt
 
-            if self.target_z < 0:
-                self.target_z += held_keys['w'] * (self.move_speed + (self.move_speed * held_keys['shift']) - (self.move_speed*.9 * held_keys['alt'])) * time.dt
-            else:
-                self.position += camera.forward * held_keys['w'] * (self.move_speed + (self.move_speed * held_keys['shift']) - (self.move_speed*.9 * held_keys['alt'])) * time.dt
+                if self.target_z < 0:
+                    self.target_z += held_keys['w'] * (self.move_speed + (self.move_speed * held_keys['shift']) - (self.move_speed*.9 * held_keys['alt'])) * time.dt
+                else:
+                    self.position += camera.forward * held_keys['w'] * (self.move_speed + (self.move_speed * held_keys['shift']) - (self.move_speed*.9 * held_keys['alt'])) * time.dt
 
-            self.target_z -= held_keys['s'] * (self.move_speed + (self.move_speed * held_keys['shift']) - (self.move_speed*.9 * held_keys['alt'])) * time.dt
+                self.target_z -= held_keys['s'] * (self.move_speed + (self.move_speed * held_keys['shift']) - (self.move_speed*.9 * held_keys['alt'])) * time.dt
 
         if mouse.middle:
+            if not hasattr(mouse.hovered_entity,"NotRotateOnHover"):
+
+                if not camera.orthographic:
+                    zoom_compensation = -self.target_z * .1
+                else:
+                    zoom_compensation = camera.orthographic * camera.fov * .2
+
+                self.position -= camera.right * mouse.velocity[0] * self.pan_speed[0] * zoom_compensation
+                self.position -= camera.up * mouse.velocity[1] * self.pan_speed[1] * zoom_compensation
+        if not hasattr(mouse.hovered_entity,"NotRotateOnHover"):
+
             if not camera.orthographic:
-                zoom_compensation = -self.target_z * .1
+                camera.z = lerp(camera.z, self.target_z, time.dt*self.zoom_smoothing)
             else:
-                zoom_compensation = camera.orthographic * camera.fov * .2
+                camera.fov = lerp(camera.fov, self.target_fov, time.dt*self.zoom_smoothing)
 
-            self.position -= camera.right * mouse.velocity[0] * self.pan_speed[0] * zoom_compensation
-            self.position -= camera.up * mouse.velocity[1] * self.pan_speed[1] * zoom_compensation
-
-        if not camera.orthographic:
-            camera.z = lerp(camera.z, self.target_z, time.dt*self.zoom_smoothing)
-        else:
-            camera.fov = lerp(camera.fov, self.target_fov, time.dt*self.zoom_smoothing)
-
-        if self.rotation_smoothing == 0:
-            self.rotation = self.smoothing_helper.rotation
-        else:
-            self.quaternion = slerp(self.quaternion, self.smoothing_helper.quaternion, time.dt*self.rotation_smoothing)
-            camera.world_rotation_z = 0
+            if self.rotation_smoothing == 0:
+                self.rotation = self.smoothing_helper.rotation
+            else:
+                self.quaternion = slerp(self.quaternion, self.smoothing_helper.quaternion, time.dt*self.rotation_smoothing)
+                camera.world_rotation_z = 0
 
 
     def __setattr__(self, name, value):

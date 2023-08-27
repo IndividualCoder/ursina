@@ -34,6 +34,7 @@ storm <default>to deal 5 <blue>water
 damage <default>to <red>everyone, <default>including <orange>yourself. <default>
 Lasts for 4 rounds.'''.replace('\n', ' ')
 )
+    Button("a").add_script(Tooltip("will this work?"))
 
-    tooltip_test.enabled = True
+    # tooltip_test.enabled = True
     app.run()

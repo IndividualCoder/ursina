@@ -12,17 +12,13 @@ class InputField(Button):
     def __init__(self, default_value='', label='', max_lines=1, character_limit=24, placeholder='',submit_on = None,enable_slider = True,escape_active = False, **kwargs):
         if not 'scale' in kwargs and not 'scale_x' in kwargs and not 'scale_y' in kwargs:
             kwargs['scale'] = (.5, Text.size*2*max_lines)
-        if not escape_active:
-            super().__init__(highlight_scale=1, pressed_scale=1, highlight_color=color.black, **kwargs)
-
-        else:
-            super().__init__(highlight_scale=1, pressed_scale=1, highlight_color=color.black, **kwargs)
+        super().__init__(highlight_scale=1, pressed_scale=1, highlight_color=color.black, **kwargs)
 
 
 
         for key, value in kwargs.items():
-            if 'scale' in key:
-                setattr(self, key, value)
+            # if 'scale' in key:
+            setattr(self, key, value)
 
 
 
@@ -34,7 +30,10 @@ class InputField(Button):
 
         self.next_field = None
         self.submit_on = submit_on
-        self.on_submit = self.MakeUnActive
+        if not "on_submit" in kwargs:
+            self.on_submit = self.MakeUnActive
+        else:
+            self.on_submit = kwargs['on_submit']
 
         self.on_value_changed = None
         self.horizontal_slider = enable_slider
@@ -112,7 +111,7 @@ class InputField(Button):
         if self.active and self.submit_on and key == self.submit_on and self.on_submit:
             # print("Submitted")
             self.on_submit()
-            self.active = False
+            # self.active = False
 
         if self.text_field.text == "":
             self.EnablePlaceholder()
