@@ -65,6 +65,67 @@ class DropdownMenu(DropdownMenuButton):
 
         self.close()
 
+class SimpleDropdownMenu(DropdownMenuButton):
+
+    def __init__(self, text='', buttons=list(),click_to_open = False, **kwargs):
+        super().__init__(text=text)
+        self.is_open = False
+        self.position = window.top_left
+        self.buttons = buttons
+
+        self.UnhoverToExit = click_to_open
+        for i, b in enumerate(self.buttons):
+            b.world_parent = self
+            b.original_scale = b.scale
+            b.x = 0
+            b.y = -i-1 *.98
+            b.enabled = False
+
+            if isinstance(b, DropdownMenu):
+                for e in b.buttons:
+                    e.x = 1
+                    e.y += 1
+
+        self.arrow_symbol = Text(text = ">",world_parent=self, origin=(0,0), position=(.95, -.5),color = color.white)
+        # self.arrow_symbol.scale_override
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+
+
+    def open(self):
+        for i, b in enumerate(self.buttons):
+            invoke(setattr, self.buttons[i], 'enabled', True, delay=(i*.02))
+        # self.arrow_symbol.animate_rotation_z(90,.4)
+
+        # self.arrow_symbol.rotate(Vec3(0,0,90))
+        # self.arrow_symbol.animate_scale(Vec3(40,4,1),.4)
+        # self.arrow_symbol.scale = (40,4,1)
+        # self.arrow_symbol.rotation_z = 90
+        self.is_open = True
+        # self.arrow_symbol.look_at(self.arrow_symbol.position + Vec3(0, 0, 1))
+        print(self.arrow_symbol.scale)
+
+    def close(self):
+        for i, b in enumerate(reversed(self.buttons)):
+            b.disable()
+        self.is_open =False
+        self.arrow_symbol.rotation_z = 0
+        self.arrow_symbol.animate_rotation_z(0,.4)
+        # self.arrow_symbol.animate_scale(Vec3(4,40,1),.4)
+        # self.arrow_symbol.scale = (4,40,1)
+    def input(self, key):
+        if key == 'left mouse down' and mouse.hovered_entity and mouse.hovered_entity.has_ancestor(self):
+            if type(mouse.hovered_entity) != DropdownMenu:
+                self.close()
+        if key == "escape":
+            self.close()
+
+    def on_click(self):
+        if self.is_open:
+            self.close()
+        else:
+            self.open()
+
 
 if __name__ == '__main__':
     from ursina.prefabs.dropdown_menu import DropdownMenu, DropdownMenuButton
